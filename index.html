@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Lista de Compras</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { margin: 0; padding: 0; background: var(--bg); color: var(--text); padding-bottom: 80px; }
+        
+        /* Cabeçalho Fixo */
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        h1 { margin: 0; font-size: 1.2rem; }
+        .total-geral { font-size: 1.4rem; font-weight: bold; }
+        
+        /* Navegação por Abas */
+        .tabs {
+            display: flex;
+            overflow-x: auto;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 58px;
+            z-index: 99;
+            -webkit-overflow-scrolling: touch;
+        }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab-btn {
+            padding: 12px 16px;
+            border: none;
+            background: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #64748b;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+        }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* Resumo da Aba Atual */
+        .aba-summary {
+            background: #eff6ff;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #bfdbfe;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Formulário de Adição */
+        .add-form {
+            padding: 15px;
+            background: var(--card);
+            margin: 15px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .input-row { display: flex; gap: 8px; }
+        input {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            width: 100%;
+        }
+        input:focus { outline: none; border-color: var(--primary); }
+        .btn-add {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Lista de Itens */
+        .item-list { padding: 0 15px; display: flex; flex-direction: column; gap: 10px; }
+        .item-card {
+            background: var(--card);
+            padding: 12px 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary);
+        }
+        .item-card.checked { opacity: 0.6; border-left-color: var(--success); }
+        .item-card.checked .item-name { text-decoration: line-through; }
+        
+        .item-left { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .checkbox { width: 22px; height: 22px; accent-color: var(--success); }
+        .item-info { display: flex; flex-direction: column; }
+        .item-name { font-weight: 600; font-size: 1rem; }
+        .item-details { font-size: 0.85rem; color: #64748b; }
+        
+        .item-right { display: flex; align-items: center; gap: 10px; }
+        .price-input {
+            width: 85px;
+            padding: 8px;
+            text-align: right;
+            font-weight: bold;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+        .btn-del {
+            background: none;
+            border: none;
+            color: var(--danger);
+            font-size: 1.2rem;
+            padding: 5px;
+            cursor: pointer;
+        }
+        .btn-clear {
+            display: block;
+            margin: 30px auto;
+            background: none;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-top">
+        <h1>🛒 Minhas Compras</h1>
+        <div class="total-geral" id="totalGeral">R$ 0,00</div>
+    </div>
+</header>
+
+<div class="tabs" id="tabsContainer"></div>
+
+<div class="aba-summary">
+    <span id="abaNomeAtual">Mercearia</span>
+    <span id="totalAba">Subtotal: R$ 0,00</span>
+</div>
+
+<div class="add-form">
+    <input type="text" id="itemName" placeholder="Nome do item (ex: Arroz 5kg)">
+    <div class="input-row">
+        <input type="number" id="itemQtd" value="1" min="1" placeholder="Qtd" style="width: 30%;">
+        <input type="number" id="itemPrice" step="0.01" placeholder="Valor R$ (opcional)" style="width: 70%;">
+    </div>
+    <button class="btn-add" onclick="adicionarItem()">+ Adicionar Item</button>
+</div>
+
+<div class="item-list" id="itemList"></div>
+
+<button class="btn-clear" onclick="limparTudo()">Limpar Lista Inteira</button>
+
+<script>
+    const categorias = [
+        { id: 'mercearia', nome: '🌾 Mercearia' },
+        { id: 'carnes', nome: '🥩 Açougue' },
+        { id: 'limpeza', nome: '🧹 Limpeza' },
+        { id: 'hortifruti', nome: '🍎 Hortifruti' },
+        { id: 'outros', nome: '🥤 Bebidas/Outros' }
+    ];
+
+    let abaAtual = 'mercearia';
+    let itens = JSON.parse(localStorage.getItem('listaCompras_v1')) || [];
+
+    function salvarDados() {
+        localStorage.setItem('listaCompras_v1', JSON.stringify(itens));
+    }
+
+    function formatarMoeda(valor) {
+        return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function renderizarAbas() {
+        const container = document.getElementById('tabsContainer');
+        container.innerHTML = '';
+        categorias.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = `tab-btn ${cat.id === abaAtual ? 'active' : ''}`;
+            btn.innerText = cat.nome;
+            btn.onclick = () => {
+                abaAtual = cat.id;
+                renderizarTudo();
+            };
+            container.appendChild(btn);
+        });
+    }
+
+    function adicionarItem() {
+        const nomeInput = document.getElementById('itemName');
+        const qtdInput = document.getElementById('itemQtd');
+        const priceInput = document.getElementById('itemPrice');
+
+        const nome = nomeInput.value.trim();
+        const qtd = parseFloat(qtdInput.value) || 1;
+        const preco = parseFloat(priceInput.value) || 0;
+
+        if (!nome) return;
+
+        itens.push({
+            id: Date.now(),
+            categoria: abaAtual,
+            nome: nome,
+            qtd: qtd,
+            preco: preco,
+            comprado: false
+        });
+
+        nomeInput.value = '';
+        qtdInput.value = '1';
+        priceInput.value = '';
+        
+        salvarDados();
+        renderizarTudo();
+    }
+
+    function atualizarPreco(id, novoPreco) {
+        const item = itens.find(i => i.id === id);
+        if (item) {
+            item.preco = parseFloat(novoPreco) || 0;
+            salvarDados();
+            atualizarTotais();
+        }
+    }
+
+    function alternarCheck(id) {
+        const item = itens.find(i => i.id === id);
+        if (item) {
+            item.comprado = !item.comprado;
+            salvarDados();
+            renderizarTudo();
+        }
+    }
+
+    function removerItem(id) {
+        itens = itens.filter(i => i.id !== id);
+        salvarDados();
+        renderizarTudo();
+    }
+
+    function limparTudo() {
+        if (confirm('Tem certeza que deseja apagar toda a lista?')) {
+            itens = [];
+            salvarDados();
+            renderizarTudo();
+        }
+    }
+
+    function atualizarTotais() {
+        let totalGeral = 0;
+        let totalAba = 0;
+
+        itens.forEach(item => {
+            const subtotalItem = item.qtd * item.preco;
+            totalGeral += subtotalItem;
+            if (item.categoria === abaAtual) {
+                totalAba += subtotalItem;
+            }
+        });
+
+        const catObj = categorias.find(c => c.id === abaAtual);
+        document.getElementById('abaNomeAtual').innerText = catObj.nome;
+        document.getElementById('totalAba').innerText = `Subtotal: ${formatarMoeda(totalAba)}`;
+        document.getElementById('totalGeral').innerText = formatarMoeda(totalGeral);
+    }
+
+    function renderizarLista() {
+        const listContainer = document.getElementById('itemList');
+        listContainer.innerHTML = '';
+
+        const itensDaAba = itens.filter(i => i.categoria === abaAtual);
+
+        itensDaAba.forEach(item => {
+            const div = document.createElement('div');
+            div.className = `item-card ${item.comprado ? 'checked' : ''}`;
+            div.innerHTML = `
+                <div class="item-left">
+                    <input type="checkbox" class="checkbox" ${item.comprado ? 'checked' : ''} onchange="alternarCheck(${item.id})">
+                    <div class="item-info">
+                        <span class="item-name">${item.nome}</span>
+                        <span class="item-details">Qtd: ${item.qtd} | Total: ${formatarMoeda(item.qtd * item.preco)}</span>
+                    </div>
+                </div>
+                <div class="item-right">
+                    <input type="number" class="price-input" step="0.01" placeholder="R$ 0,00" 
+                        value="${item.preco > 0 ? item.preco : ''}" 
+                        onchange="atualizarPreco(${item.id}, this.value)">
+                    <button class="btn-del" onclick="removerItem(${item.id})">✕</button>
+                </div>
+            `;
+            listContainer.appendChild(div);
+        });
+    }
+
+    function renderizarTudo() {
+        renderizarAbas();
+        renderizarLista();
+        atualizarTotais();
+    }
+
+    renderizarTudo();
+</script>
+</body>
+</html>
